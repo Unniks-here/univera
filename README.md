@@ -8,6 +8,13 @@ This repository contains a FastAPI-based backend that powers a multi-tenant no-c
 - JWT authentication with admin/user roles
 - Automatic CRUD router generation per entity
 - File upload storage on local disk (S3-ready)
+- Field validations (required, regex, numeric ranges, string lengths)
+- Field-level UI metadata and grouping
+- Unique field enforcement with per-record checks
+- Record audit trail with created_by/updated_by and change logs
+- Schema versioning with rollback support
+- Per-entity role-based permissions
+- Report API: Dynamic ledger report generator using group-by, filters, aggregates, etc.
 - OpenAPI documentation available at `/docs`
 
 ## Requirements
@@ -51,7 +58,15 @@ curl -X POST http://localhost:8000/schemas/ \
     "entity_name": "student",
     "fields": [
       {"name": "name", "type": "string"},
-      {"name": "age", "type": "integer"}
+      {
+        "name": "age",
+        "type": "integer",
+        "min": 0,
+        "max": 120,
+        "required": true,
+        "ui": {"label": "Age", "component": "number"},
+        "group": "personal_info"
+      }
     ]
   }'
 ```
@@ -79,6 +94,43 @@ curl -X POST http://localhost:8000/files/upload \
 ```
 The response contains a URL pointing to the stored file.
 
+## Report API: Ledger Report
+Generate dynamic ledger reports with filters, grouping, aggregates:
+```bash
+curl -X POST http://localhost:8000/report/ledger/ \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "entity": "journal_entries",
+    "filters": {"account": "Sales"},
+    "group_by": ["account"],
+    "aggregate": ["debit", "credit"],
+    "sort_by": ["date"],
+    "order": "asc"
+  }'
+```
+
+## Managing Schemas
+- Update a schema:
+  ```bash
+  curl -X PUT http://localhost:8000/schemas/student \
+    -H 'Authorization: Bearer <token>' \
+    -H 'Content-Type: application/json' \
+    -d '{"fields": [{"name": "name", "type": "string", "required": true}]}'
+  ```
+- Roll back to a previous version:
+  ```bash
+  curl -X POST http://localhost:8000/schemas/student/rollback/1 \
+    -H 'Authorization: Bearer <token>'
+  ```
+- Set permissions for an entity/role:
+  ```bash
+  curl -X PUT http://localhost:8000/schemas/student/permissions/user \
+    -H 'Authorization: Bearer <token>' \
+    -H 'Content-Type: application/json' \
+    -d '{"role":"user","can_read":true,"can_create":true,"can_update":false,"can_delete":false}'
+  ```
+
 ## Testing
 Run basic syntax checks and tests:
 ```bash
@@ -98,6 +150,7 @@ app/
   routers/
     files.py        # File upload endpoints
     schemas.py      # Schema management
+    reports.py      # Dynamic ledger report generator
   schemas.py        # Pydantic models
 requirements.txt
 ```
