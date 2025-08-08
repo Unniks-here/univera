@@ -1,11 +1,10 @@
-from datetime import datetime, date
+from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID
+from pydantic import BaseModel, Field, ConfigDict
 
-from pydantic import BaseModel
-
-
+# ----------- ENUM FOR FIELD TYPES ----------- #
 class FieldType(str, Enum):
     string = "string"
     integer = "integer"
@@ -15,48 +14,52 @@ class FieldType(str, Enum):
     file = "file"
     relation = "relation"
 
-
+# ----------- FIELD DEFINITION ----------- #
 class FieldDefinition(BaseModel):
     name: str
     type: FieldType
-    relation: Optional[str] = None  # target entity for relation fields
+    relation: Optional[str] = None
+    unique: bool = False  # <-- NEW
 
-
+# ----------- ENTITY SCHEMA MODELS ----------- #
 class EntitySchemaCreate(BaseModel):
     entity_name: str
-    fields: List[FieldDefinition]
+    fields: List[FieldDefinition] = Field(alias="schema")
 
+    model_config = ConfigDict(
+        populate_by_name=True  # Enables 'schema' in input, maps to 'fields'
+    )
 
-class EntitySchemaRead(EntitySchemaCreate):
+class EntitySchemaRead(BaseModel):
     id: UUID
+    entity_name: str
+    fields: List[FieldDefinition] = Field(alias="schema")
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True  # Enables 'schema' in output, maps from 'fields'
+    )
 
-
+# ----------- RECORD MODELS ----------- #
 class RecordBase(BaseModel):
     data: Dict[str, Any]
 
-
 class RecordCreate(RecordBase):
     pass
-
 
 class RecordRead(RecordBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
-
+# ----------- USER MODELS ----------- #
 class UserCreate(BaseModel):
     username: str
     password: str
     tenant_id: UUID
     role: str = "user"
-
 
 class UserRead(BaseModel):
     id: UUID
@@ -64,14 +67,12 @@ class UserRead(BaseModel):
     tenant_id: UUID
     role: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
-
+# ----------- AUTH MODELS ----------- #
 class Token(BaseModel):
     access_token: str
     token_type: str
-
 
 class TokenData(BaseModel):
     username: Optional[str] = None
