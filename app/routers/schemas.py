@@ -16,6 +16,15 @@ def create_entity_schema(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_admin_user),
 ):
+    # 🔐 Prevent duplicate entity_name per tenant
+    existing = (
+        db.query(models.EntitySchema)
+        .filter_by(tenant_id=current_user.tenant_id, entity_name=schema_in.entity_name)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Entity '{schema_in.entity_name}' already exists.")
+
     fields = [field.dict() for field in schema_in.fields]
     entity_schema = models.EntitySchema(
         tenant_id=current_user.tenant_id,
@@ -25,22 +34,11 @@ def create_entity_schema(
     db.add(entity_schema)
     db.commit()
     db.refresh(entity_schema)
-    # Auto-register CRUD router for new entity
+
+    # 🔄 Auto-register CRUD router dynamically
     request.app.include_router(
         generate_crud_router(schema_in.entity_name),
         prefix=f"/{schema_in.entity_name}",
         tags=[schema_in.entity_name],
     )
     return entity_schema
-
-
-@router.get("/", response_model=list[schemas.EntitySchemaRead])
-def list_entity_schemas(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user),
-):
-    return (
-        db.query(models.EntitySchema)
-        .filter(models.EntitySchema.tenant_id == current_user.tenant_id)
-        .all()
-    )

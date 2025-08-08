@@ -14,14 +14,13 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="user")  # "admin" or "user"
-
 class EntitySchema(Base):
     __tablename__ = "entity_schemas"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), nullable=False)
-    entity_name = Column(String, index=True, nullable=False)
-    schema = Column(JSONB, nullable=False)  # List of field definitions
+    entity_name = Column(String, index=True, nullable=False, unique=True)  # ✅ Make entity_name unique
+    schema = Column(JSONB, nullable=False)
 
 class Record(Base):
     __tablename__ = "records"
@@ -32,3 +31,9 @@ class Record(Base):
     data = Column(JSONB, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Tenant(Base):
+    __tablename__ = "tenants"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, unique=True, nullable=False)
