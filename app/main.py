@@ -11,6 +11,9 @@ from .models import Base, EntitySchema, User, Tenant  # <- Add Tenant model
 from .routers import files as files_router
 from .routers import schemas as schemas_router
 from .auth_utils import get_password_hash  # <- Password hashing
+from .models import Base, EntitySchema, User, Tenant
+from app import report_router
+
 
 # UUID to use for the default tenant
 DEFAULT_TENANT_ID = UUID("00000000-0000-0000-0000-000000000000")
@@ -21,6 +24,7 @@ app = FastAPI(title="Univera No-Code Platform")
 app.include_router(auth_router)
 app.include_router(schemas_router.router)
 app.include_router(files_router.router)
+app.include_router(report_router.router)
 
 # Serve uploaded files (development use)
 app.mount("/files", StaticFiles(directory=settings.file_storage_path), name="files")

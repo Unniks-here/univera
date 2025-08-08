@@ -19,7 +19,8 @@ class FieldDefinition(BaseModel):
     name: str
     type: FieldType
     relation: Optional[str] = None
-    unique: bool = False  # <-- NEW
+    unique: bool = False
+
 
 # ----------- ENTITY SCHEMA MODELS ----------- #
 class EntitySchemaCreate(BaseModel):
@@ -27,7 +28,7 @@ class EntitySchemaCreate(BaseModel):
     fields: List[FieldDefinition] = Field(alias="schema")
 
     model_config = ConfigDict(
-        populate_by_name=True  # Enables 'schema' in input, maps to 'fields'
+        populate_by_name=True
     )
 
 class EntitySchemaRead(BaseModel):
@@ -37,7 +38,7 @@ class EntitySchemaRead(BaseModel):
 
     model_config = ConfigDict(
         from_attributes=True,
-        populate_by_name=True  # Enables 'schema' in output, maps from 'fields'
+        populate_by_name=True
     )
 
 # ----------- RECORD MODELS ----------- #
@@ -76,3 +77,24 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class PermissionBase(BaseModel):
+    role: str
+    can_read: bool = True
+    can_create: bool = True
+    can_update: bool = True
+    can_delete: bool = True
+
+class PermissionRead(PermissionBase):
+    id: UUID
+    entity_name: str
+
+    model_config = ConfigDict(from_attributes=True)
+class EntitySchemaUpdate(BaseModel):
+    entity_name: Optional[str] = None
+    fields: Optional[List[FieldDefinition]] = Field(default=None, alias="schema")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True
+    )
